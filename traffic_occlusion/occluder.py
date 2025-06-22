@@ -167,7 +167,53 @@ def occlude_C(packets):
 
     return packets
 
-def occlude_T(packets):
+def _extract_server_flow_key(packets_pyshark):
+    for packet in packets_pyshark:
+        try:
+            # TLS Handshake Layer
+            handshake_type = packet.tls.handshake_type
+            if '1' in handshake_type:
+                return (packet.ip.dst, int(packet.tcp.dstport), packet.ip.src, int(packet.tcp.srcport))
+            if '2' in handshake_type:
+                return (packet.ip.src, int(packet.tcp.srcport), packet.ip.dst, int(packet.tcp.dstport))
+        except AttributeError:
+            continue  # Skip non-TLS handshake packets
+    
+def _extract_client_flow_key(packets_pyshark):
+    for packet in packets_pyshark:
+        try:
+            # TLS Handshake Layer
+            handshake_type = packet.tls.handshake_type
+            if '1' in handshake_type:
+                return (packet.ip.src, int(packet.tcp.srcport), packet.ip.dst, int(packet.tcp.dstport))
+            if '2' in handshake_type:
+                return (packet.ip.dst, int(packet.tcp.dstport), packet.ip.src, int(packet.tcp.srcport))
+        except AttributeError:
+            continue  # Skip non-TLS handshake packets
+
+def occlude_T1(packets, pyshark_packets):
+    """
+    T1: Randomize the TCP window size and TCP options values while preserving their relative differences of client flow.
+    For TCP Timestamp options, random base is initialized using the first occurrence in that flow,
+    and the time gaps (delta) from the original values are preserved for subsequent packets.
+    """
+    flow_key = _extract_client_flow_key(pyshark_packets)
+    pyshark_packets.close()
+    assert flow_key is not None, "Client flow key not found in packets."
+    return occlude_T(packets, flow_key)
+
+def occlude_T2(packets, pyshark_packets):
+    """
+    T2: Randomize the TCP window size and TCP options values while preserving their relative differences of server flow.
+    For TCP Timestamp options, random base is initialized using the first occurrence in that flow,
+    and the time gaps (delta) from the original values are preserved for subsequent packets.
+    """
+    flow_key = _extract_server_flow_key(pyshark_packets)
+    pyshark_packets.close()
+    assert flow_key is not None, "Server flow key not found in packets."
+    return occlude_T(packets, flow_key)
+
+def occlude_T(packets, restrict_flow_key=None):
     """
     T: Randomize the TCP window size and TCP options values while preserving their relative differences.
     For TCP Timestamp options, a per-flow random base is initialized using the first occurrence in that flow,
@@ -183,7 +229,8 @@ def occlude_T(packets):
             if pkt.haslayer("IP") and pkt.haslayer("TCP"):
                 # Define a flow key for this packet's direction.
                 flow_key = (pkt["IP"].src, pkt["TCP"].sport, pkt["IP"].dst, pkt["TCP"].dport)
-
+                if restrict_flow_key and flow_key != restrict_flow_key:
+                    continue
                 # Adjust TCP window size per flow.
                 if flow_key not in window_offsets:
                     window_offsets[flow_key] = (random.randint(0, 65535), pkt["TCP"].window)
