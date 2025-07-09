@@ -72,7 +72,7 @@ def process_file(file_path, dest_file, option):
             packets = occluder.occlude_D1(packets)
             sni = util.get_sni(file_path)
             if sni:
-                packets = occluder.occlude_D2(packets)
+                packets = occluder.occlude_D2(packets, sni)
         elif option == "D1D2":
             packets = occluder.occlude_D1(packets)
             sni = util.get_sni(file_path)
