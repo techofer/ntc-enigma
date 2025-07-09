@@ -57,7 +57,7 @@ def process_file(file_path, dest_file, option):
             packets = occluder.occlude_D1(packets)
             sni = util.get_sni(file_path)
             if sni:
-                packets = occluder.occlude_D2(packets)
+                packets = occluder.occlude_D2(packets, sni)
         elif option == "CT2D":
             packets_pyshark = pyshark.FileCapture(file_path)
             packets = occluder.occlude_C(packets)
@@ -65,7 +65,7 @@ def process_file(file_path, dest_file, option):
             packets = occluder.occlude_D1(packets)
             sni = util.get_sni(file_path)
             if sni:
-                packets = occluder.occlude_D2(packets)
+                packets = occluder.occlude_D2(packets, sni)
         elif option == "CTD":
             packets = occluder.occlude_C(packets)
             packets = occluder.occlude_T(packets)
@@ -77,7 +77,7 @@ def process_file(file_path, dest_file, option):
             packets = occluder.occlude_D1(packets)
             sni = util.get_sni(file_path)
             if sni:
-                packets = occluder.occlude_D2(packets)
+                packets = occluder.occlude_D2(packets, sni)
         else:
             logging.error(f"Unknown occlusion option: {option}")
             return
