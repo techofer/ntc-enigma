@@ -10,7 +10,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="PCAP Occlusion Script")
     parser.add_argument("source", help="Source path to the pcap dataset directory")
     parser.add_argument("destination", help="Destination path to save occluded pcap files")
-    parser.add_argument("--option", choices=["CT1D", "CT2D", "CTD", "D1D2", "D1", "D2", "C", "T", "T1", "T2", "H1", "P1", "E1", "E2", "E3"],
+    parser.add_argument("--option", choices=["CT3D", "CT1D", "CT2D", "CTD", "D1D2", "D1", "D2", "C", "T", "T1", "T2", "H1", "P1", "E1", "E2", "E3"],
                         default="C", help="Occlusion option (default: C)")
     return parser.parse_args()
 
@@ -62,6 +62,13 @@ def process_file(file_path, dest_file, option):
             packets_pyshark = pyshark.FileCapture(file_path)
             packets = occluder.occlude_C(packets)
             packets = occluder.occlude_T2(packets, packets_pyshark)
+            packets = occluder.occlude_D1(packets)
+            sni = util.get_sni(file_path)
+            if sni:
+                packets = occluder.occlude_D2(packets, sni)
+        elif option == "CT3D":
+            packets = occluder.occlude_C(packets)
+            packets = occluder.occlude_T3(packets)
             packets = occluder.occlude_D1(packets)
             sni = util.get_sni(file_path)
             if sni:

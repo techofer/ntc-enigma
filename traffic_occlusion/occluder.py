@@ -23,6 +23,25 @@ def generate_random_sni(length):
     letters = "abcdefghijklmnopqrstuvwxyz"
     return "".join(random.choices(letters, k=(length-4))) + ".com" # -4 to account for the ".com" suffix
 
+def occlude_T3(packets):
+    const_window = 65535
+    const_options = [('MSS', 1460), ('SAckOK', b''), ('Timestamp', (1348616010, 0)), ('NOP', None), ('WScale', 7)]
+
+    for pkt in packets:
+        try:
+            if pkt.haslayer("IP") and pkt.haslayer("TCP"):
+                pkt["TCP"].window = const_window
+                
+                # Process TCP options if present.
+                if pkt["TCP"].options:
+                    pkt["TCP"].options = const_options
+
+                # Force recalculation of the TCP checksum.
+                pkt["TCP"].chksum = None
+        except Exception:
+            raise
+    return packets
+
 def occlude_D1(packets):
     """
     D1: Anonymize strong identification information (MAC/IP addresses and ports) 
